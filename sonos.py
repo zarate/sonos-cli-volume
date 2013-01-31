@@ -16,6 +16,7 @@ import urllib2
 import os, os.path
 import sys
 import getopt
+import math
 from urlparse import urlparse
 from time import sleep
 from thread import *
@@ -57,6 +58,37 @@ class device:
 		self.min_vol = min_vol
 		self.max_vol = max_vol
 
+	def set_volume(self, new_volume):
+
+		final_volume = int(math.floor((self.max_vol - self.min_vol) * new_volume.value))
+
+		headers = {
+			"SOAPACTION": "\"urn:schemas-upnp-org:service:RenderingControl:1#SetVolume\"",
+			"CONNECTION": "close",
+			"User-Agent": "ustwo CLI Sonos client",
+			"Content-Type": "text/xml; charset=utf-8"
+		}
+
+		data = '<?xml version="1.0" encoding="utf-8"?>'\
+				'<s:Envelope s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body>'\
+						'<ns0:SetVolume xmlns:ns0="urn:schemas-upnp-org:service:RenderingControl:1">'\
+							'<InstanceID>0</InstanceID>'\
+							'<Channel>Master</Channel>'\
+							'<DesiredVolume>' + str(final_volume) + '</DesiredVolume>'\
+						'</ns0:SetVolume>'\
+					'</s:Body>'\
+				'</s:Envelope>'
+
+		request = urllib2.Request(self.control_url, data, headers)
+
+		try:
+			urllib2.urlopen(request)
+
+		except urllib2.HTTPError as e:
+
+			print "Oh dear, the request failed :("
+			print "Server error code: " + str(e.code)
+
 	def __str__(self):
 		return "Device: [name: " + self.name + ", base_url: " + self.base_url + "]"
 
@@ -67,8 +99,8 @@ class device:
 						"<name><![CDATA[" + new_device.name + "]]></name>"\
 						"<baseUrl><![CDATA[" + new_device.base_url + "]]></baseUrl>"\
 						"<controlUrl><![CDATA[" + new_device.control_url + "]]></controlUrl>"\
-						"<minVol><![CDATA[" + new_device.min_vol + "]]></minVol>"\
-						"<maxVol><![CDATA[" + new_device.max_vol + "]]></maxVol>"\
+						"<minVol><![CDATA[" + str(new_device.min_vol) + "]]></minVol>"\
+						"<maxVol><![CDATA[" + str(new_device.max_vol) + "]]></maxVol>"\
 						"</device>"
 		return xml_string
 
@@ -77,8 +109,8 @@ class device:
 		name = xml.find("name").text
 		base_url = xml.find("baseUrl").text
 		control_url = xml.find("controlUrl").text
-		min_vol = xml.find("minVol").text
-		max_vol = xml.find("maxVol").text
+		min_vol = int(xml.find("minVol").text)
+		max_vol = int(xml.find("maxVol").text)
 
 		return device(name, base_url, control_url, min_vol, max_vol)
 
@@ -382,7 +414,7 @@ def main(argv):
 
 		if len(management.get_devices()) > 0:
 
-			print "Can't find a matching device, please pick up one from the list below!"
+			print "Can't find a matching device, please pick up one from the list below:"
 			list_devices()
 			sys.exit(1)
 
@@ -393,12 +425,12 @@ def main(argv):
 
 	if not selected_volume:
 
-		print "Can't find a matching volume"
+		print "Can't find a matching volume, see the list below:"
 		list_volumes()
 		sys.exit(1)
 
-	print "selected_device: " + selected_device.name
-	print "selected_volume: " + selected_volume.name
+	# at this point we have a valid device and a valid volume
+	selected_device.set_volume(selected_volume)
 
 # let's get the party started
 if __name__ == "__main__":
