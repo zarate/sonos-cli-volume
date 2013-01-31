@@ -124,12 +124,17 @@ class listen:
 
 	def read(self):
 
-		mreq = struct.pack("4sl", socket.inet_aton(MCAST_GRP), socket.INADDR_ANY)
-		
-		sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-		sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-		sock.bind(('', MCAST_PORT))		
-		sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+		try:
+			mreq = struct.pack("4sl", socket.inet_aton(MCAST_GRP), socket.INADDR_ANY)
+			sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+			sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+			sock.bind(('', MCAST_PORT))		
+			sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+
+		except: 
+
+			print "Failed to bind the listening socket :("
+			sys.exit(1)
 
 		while True:
 
@@ -172,9 +177,15 @@ class search:
 
 		print "Searching for Sonos / UPnP devices. Takes literally " + str(MAX_RESPONSE_TIME) + " seconds..."
 
-		sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-		sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-		sock.bind(('', MCAST_PORT))
+		try:
+			sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+			sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+			sock.bind(('', MCAST_PORT))
+
+		except:
+
+			print "Failed to bind search socket :( "
+			sys.exit(1)
 
 		request = "M-SEARCH * HTTP/1.1\r\n"\
 				"HOST: " + MCAST_GRP + ":" + str(MCAST_PORT) + "\r\n"\
