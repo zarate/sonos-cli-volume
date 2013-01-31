@@ -23,12 +23,24 @@ from xml.etree import ElementTree as ET
 
 MCAST_GRP = "239.255.255.250"
 MCAST_PORT = 1900
-MAX_RESPONSE_TIME = 10 # seconds
+MAX_RESPONSE_TIME = 5 # seconds
 RENDER_CONTROL_SCHEMA = "urn:schemas-upnp-org:service:RenderingControl:1"
 NOTIFY_ANSWER = "NOTIFY"
 SEARCH_ANSWER = "HTTP/1.1 200 OK"
 NS = "{urn:schemas-upnp-org:device-1-0}"
 NSS = "{urn:schemas-upnp-org:service-1-0}"
+
+class volume:
+
+	name = False
+	value = False
+
+	def __init__(self, name, value):
+		self.name = name
+		self.value = value
+
+	def __str__(self):
+		return "Volume [name: " + self.name + ", value: " + str(self.value) + "]"
 
 class device:
 
@@ -46,7 +58,7 @@ class device:
 		self.max_vol = max_vol
 
 	def __str__(self):
-		return "Device: [name: " + name + ", base_url: " + base_url + "]"
+		return "Device: [name: " + self.name + ", base_url: " + self.base_url + "]"
 
 	def to_xml(new_device):
 
@@ -126,7 +138,7 @@ class search:
 
 	def __init__(self):
 
-		print "Searching for Sonos / UPnP devices. Please wait..."
+		print "Searching for Sonos / UPnP devices. Takes literally " + str(MAX_RESPONSE_TIME) + " seconds..."
 
 		sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
 		sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -229,20 +241,44 @@ class management:
 	add_device = Callable.Callable(add_device)
 	get_devices = Callable.Callable(get_devices)
 
+def get_device(name):
+
+	selected_device = False
+
+	for device in management.get_devices():
+
+		if name.lower() in device.name.lower():
+			selected_device = device
+			break
+
+	return selected_device
+
+def get_volume(name):
+
+	selected_volume = False
+	volumes = get_volumes()
+
+	for volume in volumes:
+		if name.lower() in volume.name.lower():
+			selected_volume = volume
+			break
+
+	return selected_volume
+
 def get_volumes():
 
-	volumes = {
-		"kill": 0,
-		"shutup": 0,
-		"quiet": 0.2,
-		"low": 0.2,
-		"meeting": 0.2,
-		"please": 0.2,
-		"acceptable": 0.4,
-		"normal": 0.4,
-		"average": 0.4,
-		"high": 0.8
-	}
+	volumes = [
+		volume("kill", 0),
+		volume("shutup", 0),
+		volume("quiet", 0.2),
+		volume("low", 0.2),
+		volume("meetig", 0.2),
+		volume("please", 0.2),
+		volume("acceptable", 0.4),
+		volume("normal", 0.4),
+		volume("average", 0.4),
+		volume("high", 0.8)
+	]
 
 	return volumes
 
@@ -265,10 +301,11 @@ def list_volumes():
 	# TODO: print in ASC order by value
 	print "List of available volumes:"
 
-	for key in get_volumes():
-		print key
+	for volume in get_volumes():
+		print "\t" + volume.name + " (" + str(volume.value) + ")"
 
 def search_devices():
+
 	listen()
 	search()
 
@@ -284,10 +321,13 @@ def search_devices():
 
 def print_help():
 	print "The manual:"
+	print ""
 	print "\tUsage: sonos.py DEVICE VOLUME"
 	print "\tTip #1: You can pass a partial match for the DEVICE name"
 	print "\tTip #2: You can pass DEVICE VOLUME or VOLUME DEVICE, doesn't matter"
+	print "\tTip #3: Both DEVICE and VOLUME are case insensitive"
 	print ""
+	print "Options:"
 	print "\t-l, --list: prints the list of devices available"
 	print "\t-v, --volume: list available volumes"
 	print "\t-s, --search: searches for devices"
@@ -295,7 +335,7 @@ def print_help():
 
 def main(argv):
 
-	if len(sys.argv) <= 0:
+	if len(argv) <= 0:
 
 		print "No arguments passed, don't know what to do, please RTM"
 		print_help()
@@ -314,9 +354,11 @@ def main(argv):
 
 		if opt in ("-l", "--list"):
 			list_devices()
+			sys.exit(0)
 
 		elif opt in ("-v", "--volume"):
 			list_volumes()
+			sys.exit(0)
 
 		elif opt in ("-s", "--search"):
 			search_devices()
@@ -324,6 +366,39 @@ def main(argv):
 		elif opt in ("-h", "--help"):
 			print_help()
 			sys.exit(0)
+
+	selected_device = False
+	selected_volume = False
+
+	for arg in args:
+
+		if not selected_device: 
+			selected_device = get_device(arg)
+
+		if not selected_volume: 
+			selected_volume = get_volume(arg)
+
+	if not selected_device:
+
+		if len(management.get_devices()) > 0:
+
+			print "Can't find a matching device, please pick up one from the list below!"
+			list_devices()
+			sys.exit(1)
+
+		else:
+
+			print "There are no devices stored yet, please run a search first!"
+			sys.exit(1)
+
+	if not selected_volume:
+
+		print "Can't find a matching volume"
+		list_volumes()
+		sys.exit(1)
+
+	print "selected_device: " + selected_device.name
+	print "selected_volume: " + selected_volume.name
 
 # let's get the party started
 if __name__ == "__main__":
