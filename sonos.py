@@ -10,6 +10,8 @@ import socket
 import struct
 import time
 import urllib2
+import Callable
+import system
 from urlparse import urlparse
 from time import sleep
 from thread import *
@@ -23,12 +25,6 @@ NOTIFY_ANSWER = "NOTIFY"
 SEARCH_ANSWER = "HTTP/1.1 200 OK"
 NS = "{urn:schemas-upnp-org:device-1-0}"
 NSS = "{urn:schemas-upnp-org:service-1-0}"
-
-# ummm, this is weird, found here:
-# http://code.activestate.com/recipes/52304-static-methods-aka-class-methods-in-python/
-class Callable:
-    def __init__(self, anycallable):
-        self.__call__ = anycallable
 
 class device:
 
@@ -55,11 +51,11 @@ class device:
 						"<maxVol><![CDATA[" + new_device.max_vol + "]]></maxVol>"\
 						"</device>"
 		return xml_string
-	to_xml = Callable(to_xml)
+	to_xml = Callable.Callable(to_xml)
 
 	def from_xml(xml):
 		return device("name", "controlurl", "min", "max")
-	from_xml = Callable(from_xml)
+	from_xml = Callable.Callable(from_xml)
 
 
 class listen:
@@ -185,7 +181,7 @@ class management:
 	
 	def has_configuration():
 		return False
-	has_configuration = Callable(has_configuration)
+	has_configuration = Callable.Callable(has_configuration)
 
 	def add_device(new_device):
 
@@ -195,13 +191,9 @@ class management:
 
 		print "Adding device: " + new_device.name
 
-		# TODO: find system's application data folder
-		# write a file per device
-		# file = open(file_name, "w")
-		# file.write(device.to_xml(new_device))
-		# file.close()
+		system.system.save(file_name, device.to_xml(new_device))
 
-	add_device = Callable(add_device)
+	add_device = Callable.Callable(add_device)
 
 if not management.has_configuration():
 
