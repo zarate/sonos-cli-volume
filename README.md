@@ -1,8 +1,8 @@
 This is a Sonos command line client,
-it only supports turning volume up and down.
+but only supports turning volume up and down.
 
 Searches for Sonos devices, stores the information
 and provides simple shortcuts to control the volume.
 
-Will in theory or with little modification work
+Will in theory work (or with little modification)
 with any UPnP devices that support the RenderingControl:1 service.
