@@ -4,7 +4,7 @@ import os
 
 class system:
 	
-	def save(file_name, content):
+	def save_file(file_name, content):
 
 		file_path = system.get_app_data_folder() + "/" + file_name
 
@@ -12,8 +12,16 @@ class system:
 		file.write(content)
 		file.close()
 
+	def read_files():
+
+		# returns FULL PATHS to the files
+		app_data_folder = system.get_app_data_folder()
+		return [app_data_folder + "/" + name for name in os.listdir(app_data_folder) if os.path.isfile(app_data_folder + "/" + name)]
+
 	def get_app_data_folder():
 
+		# todo, using "." to hide the folder is only Linux-friendly,
+		# but not Win / OSX
 		app_data_folder = system.get_system_app_data_folder() + "/.sonos_cli"
 
 		if not os.path.exists(app_data_folder):
@@ -32,13 +40,14 @@ class system:
 		}.get(platform.system(), False)
 
 	def get_system_env(env):
-		
+
 		try:
 			return os.environ[env]
 		except KeyError:
 			return False
 
-	save = Callable.Callable(save)
+	save_file = Callable.Callable(save_file)
+	read_files = Callable.Callable(read_files)
 	get_app_data_folder = Callable.Callable(get_app_data_folder)
 	get_system_app_data_folder = Callable.Callable(get_system_app_data_folder)
 	get_system_env = Callable.Callable(get_system_env)

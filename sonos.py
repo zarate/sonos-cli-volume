@@ -6,12 +6,16 @@
 # UPnP inspector
 # https://launchpad.net/ubuntu/+source/upnp-inspector
 
+import Callable
+import system
+
 import socket
 import struct
 import time
 import urllib2
-import Callable
-import system
+import os, os.path
+import sys
+import getopt
 from urlparse import urlparse
 from time import sleep
 from thread import *
@@ -41,7 +45,11 @@ class device:
 		self.min_vol = min_vol
 		self.max_vol = max_vol
 
+	def __str__(self):
+		return "Device: [name: " + name + ", base_url: " + base_url + "]"
+
 	def to_xml(new_device):
+
 		xml_string = "<?xml version=\"1.0\" ?>"\
 						"<device>"\
 						"<name><![CDATA[" + new_device.name + "]]></name>"\
@@ -51,12 +59,19 @@ class device:
 						"<maxVol><![CDATA[" + new_device.max_vol + "]]></maxVol>"\
 						"</device>"
 		return xml_string
-	to_xml = Callable.Callable(to_xml)
 
 	def from_xml(xml):
-		return device("name", "controlurl", "min", "max")
-	from_xml = Callable.Callable(from_xml)
 
+		name = xml.find("name").text
+		base_url = xml.find("baseUrl").text
+		control_url = xml.find("controlUrl").text
+		min_vol = xml.find("minVol").text
+		max_vol = xml.find("maxVol").text
+
+		return device(name, base_url, control_url, min_vol, max_vol)
+
+	to_xml = Callable.Callable(to_xml)
+	from_xml = Callable.Callable(from_xml)
 
 class listen:
 
@@ -180,8 +195,11 @@ class message:
 class management:
 	
 	def has_configuration():
-		return False
-	has_configuration = Callable.Callable(has_configuration)
+		
+		app_data_folder = system.system.get_app_data_folder()
+
+		# TODO:, we should only count here for device files (.xml)
+		return len(management.get_devices()) > 0
 
 	def add_device(new_device):
 
@@ -191,12 +209,66 @@ class management:
 
 		print "Adding device: " + new_device.name
 
-		system.system.save(file_name, device.to_xml(new_device))
+		system.system.save_file(file_name, device.to_xml(new_device))
 
+	def get_devices():
+
+		files = system.system.read_files()
+
+		devices = []
+
+		for device_file in files:
+
+			content = open(device_file, "r").read()
+			new_device = device.from_xml(ET.fromstring(content))
+			devices.append(new_device)
+
+		return devices
+
+	has_configuration = Callable.Callable(has_configuration)
 	add_device = Callable.Callable(add_device)
+	get_devices = Callable.Callable(get_devices)
 
-if not management.has_configuration():
+def get_volumes():
 
+	volumes = {
+		"kill": 0,
+		"shutup": 0,
+		"quiet": 0.2,
+		"low": 0.2,
+		"meeting": 0.2,
+		"please": 0.2,
+		"acceptable": 0.4,
+		"normal": 0.4,
+		"average": 0.4,
+		"high": 0.8
+	}
+
+	return volumes
+
+def list_devices():
+
+	devices = management.get_devices()
+
+	if len(devices) <= 0:
+
+		print "No stored devices, try searching first (or again!)"
+
+	else:
+
+		print "List of current devices (search again if this is not what you expect):"
+		for device in devices:
+			print "\t" + device.name + " (" + device.base_url + ")"
+
+def list_volumes():
+
+	# TODO: print in ASC order by value
+	print "List of available volumes:"
+
+	for key in get_volumes():
+		print key
+
+def search_devices():
 	listen()
 	search()
 
@@ -210,4 +282,49 @@ if not management.has_configuration():
 			print "Search is over"
 			break
 
-print "DONE"
+def print_help():
+	print "The manual:"
+	print "\tUsage: sonos.py DEVICE VOLUME"
+	print "\tTip #1: You can pass a partial match for the DEVICE name"
+	print "\tTip #2: You can pass DEVICE VOLUME or VOLUME DEVICE, doesn't matter"
+	print ""
+	print "\t-l, --list: prints the list of devices available"
+	print "\t-v, --volume: list available volumes"
+	print "\t-s, --search: searches for devices"
+	print "\t-h, --help: print this help"
+
+def main(argv):
+
+	if len(sys.argv) <= 0:
+
+		print "No arguments passed, don't know what to do, please RTM"
+		print_help()
+		sys.exit(1)
+
+	try:
+		opts, args = getopt.getopt(argv, "lvsh", ["list", "volume", "search", "help"])
+
+	except getopt.GetoptError:
+
+		print "Sorry, can't really work out what you mean"
+		print_help()
+		sys.exit(2)
+
+	for opt, arg in opts:
+
+		if opt in ("-l", "--list"):
+			list_devices()
+
+		elif opt in ("-v", "--volume"):
+			list_volumes()
+
+		elif opt in ("-s", "--search"):
+			search_devices()
+
+		elif opt in ("-h", "--help"):
+			print_help()
+			sys.exit(0)
+
+# let's get the party started
+if __name__ == "__main__":
+	main(sys.argv[1:])
