@@ -17,6 +17,7 @@ import os, os.path
 import sys
 import getopt
 import math
+
 from urlparse import urlparse
 from time import sleep
 from thread import *
@@ -127,14 +128,13 @@ class listen:
 		try:
 			mreq = struct.pack("4sl", socket.inet_aton(MCAST_GRP), socket.INADDR_ANY)
 			sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-			sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+			sock.setsockopt(socket.SOL_SOCKET, system.system.reuse_port_type(), 1)
 			sock.bind(('', MCAST_PORT))		
 			sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
 
 		except: 
 
 			print "Failed to bind the listening socket :("
-			sys.exit(1)
 
 		while True:
 
@@ -179,7 +179,7 @@ class search:
 
 		try:
 			sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-			sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+			sock.setsockopt(socket.SOL_SOCKET, system.system.reuse_port_type(), 1)
 			sock.bind(('', MCAST_PORT))
 
 		except:
@@ -363,6 +363,7 @@ def search_devices():
 			break
 
 def print_help():
+	
 	print "The manual:"
 	print ""
 	print "\tUsage: sonos.py DEVICE VOLUME"
@@ -405,6 +406,7 @@ def main(argv):
 
 		elif opt in ("-s", "--search"):
 			search_devices()
+			sys.exit(0)
 
 		elif opt in ("-h", "--help"):
 			print_help()

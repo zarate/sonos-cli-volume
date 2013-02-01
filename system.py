@@ -1,6 +1,8 @@
 import Callable
+
 import platform
 import os
+import socket
 
 class system:
 	
@@ -46,8 +48,17 @@ class system:
 		except KeyError:
 			return False
 
+	def reuse_port_type():
+
+		# THANK YOU ATIKAT, STACKOVERFLOW AND GOOGLE:
+		# http://stackoverflow.com/questions/7342322/bind-to-mdns-multicast-address-on-mac-os-x
+		return {
+			"Darwin": socket.SO_REUSEPORT
+		}.get(platform.system(), socket.SO_REUSEADDR)
+
 	save_file = Callable.Callable(save_file)
 	read_files = Callable.Callable(read_files)
 	get_app_data_folder = Callable.Callable(get_app_data_folder)
 	get_system_app_data_folder = Callable.Callable(get_system_app_data_folder)
 	get_system_env = Callable.Callable(get_system_env)
+	reuse_port_type = Callable.Callable(reuse_port_type)
