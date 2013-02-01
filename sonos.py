@@ -183,9 +183,14 @@ class listen:
 
 class search:
 
-	def __init__(self):
+	def __init__(self, timeout):
 
-		print "Searching for Sonos / UPnP devices. Takes literally " + str(MAX_RESPONSE_TIME) + " seconds..."
+		if timeout < 10:
+			takes = ". Takes literally " + str(timeout) + " seconds..."
+		else:
+			takes = "(" + str(timeout) + " seconds)..."
+
+		print "Searching for Sonos / UPnP devices " + takes
 
 		try:
 			sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
@@ -200,7 +205,7 @@ class search:
 		request = "M-SEARCH * HTTP/1.1\r\n"\
 				"HOST: " + MCAST_GRP + ":" + str(MCAST_PORT) + "\r\n"\
 				"MAN: \"ssdp:discover\"\r\n"\
-				"MX: " + str(MAX_RESPONSE_TIME) + "\r\n"\
+				"MX: " + str(timeout) + "\r\n"\
 				"ST: " + RENDER_CONTROL_SCHEMA + "\r\n"\
 				"\r\n"
 
@@ -354,19 +359,23 @@ def list_volumes():
 	for volume in get_volumes():
 		print "\t" + volume.name + " (" + str(volume.value) + ")"
 
-def search_devices():
+def search_devices(timeout):
 
 	listen()
-	search()
+	search(timeout)
 
 	start_time = time.time();
 
 	while True:
 		sleep(0.1)
 
-		if(time.time() - start_time > MAX_RESPONSE_TIME):
+		if(time.time() - start_time > timeout):
 
 			print "Search is over"
+
+			if len(management.get_devices()) <= 0:
+				print "Couldn't find devices, I'm afraid. Try increasing search time using -t"
+
 			break
 
 def print_help():
@@ -382,6 +391,7 @@ def print_help():
 	print "\t-l, --list: prints the list of devices available"
 	print "\t-v, --volume: list available volumes"
 	print "\t-s, --search: searches for devices"
+	print "\t-t, --timeout: sets the search timeout in seconds, default is " + str(MAX_RESPONSE_TIME)
 	print "\t-h, --help: print this help"
 
 def main(argv):
@@ -392,12 +402,15 @@ def main(argv):
 		print_help()
 		sys.exit(1)
 
+	perform_search = False
+	timeout = MAX_RESPONSE_TIME # default
+
 	try:
-		opts, args = getopt.getopt(argv, "lvsh", ["list", "volume", "search", "help"])
+		opts, args = getopt.getopt(argv, "lvst:h", ["list", "volume", "search", "timeout", "help"])
 
 	except getopt.GetoptError:
 
-		print "Sorry, can't really work out what you mean"
+		print "Sorry, can't really work out what you mean :("
 		print_help()
 		sys.exit(2)
 
@@ -412,45 +425,55 @@ def main(argv):
 			sys.exit(0)
 
 		elif opt in ("-s", "--search"):
-			search_devices()
-			sys.exit(0)
+			perform_search = True
+
+		elif opt in ("-t", "--timeout"):
+			timeout = int(arg)
 
 		elif opt in ("-h", "--help"):
 			print_help()
 			sys.exit(0)
 
-	selected_device = False
-	selected_volume = False
+	if perform_search:
 
-	for arg in args:
+		search_devices(timeout)
+		sys.exit(0)
 
-		if not selected_device: 
-			selected_device = get_device(arg)
+	else:
 
-		if not selected_volume: 
-			selected_volume = get_volume(arg)
+		selected_device = False
+		selected_volume = False
 
-	if not selected_device:
+		for arg in args:
 
-		if len(management.get_devices()) > 0:
+			if not selected_device: 
+				selected_device = get_device(arg)
 
-			print "Can't find a matching device, please pick up one from the list below:"
-			list_devices()
+			if not selected_volume: 
+				selected_volume = get_volume(arg)
+
+		if not selected_device:
+
+			if len(management.get_devices()) > 0:
+
+				print "Can't find a matching device, please pick up one from the list below:"
+				list_devices()
+				sys.exit(1)
+
+			else:
+
+				print "There are no devices stored yet, please run a search first!"
+				sys.exit(1)
+
+		if not selected_volume:
+
+			print "Can't find a matching volume, see the list below:"
+			list_volumes()
 			sys.exit(1)
 
-		else:
-
-			print "There are no devices stored yet, please run a search first!"
-			sys.exit(1)
-
-	if not selected_volume:
-
-		print "Can't find a matching volume, see the list below:"
-		list_volumes()
-		sys.exit(1)
-
-	# at this point we have a valid device and a valid volume
-	selected_device.set_volume(selected_volume)
+		# at this point we have a valid device and a valid volume
+		selected_device.set_volume(selected_volume)
+		sys.exit(0)
 
 # let's get the party started
 if __name__ == "__main__":
