@@ -315,7 +315,7 @@ def get_volumes():
 		volume("shutup", 0),
 		volume("quiet", 0.2),
 		volume("low", 0.2),
-		volume("meetig", 0.2),
+		volume("meeting", 0.2),
 		volume("please", 0.2),
 		volume("acceptable", 0.4),
 		volume("normal", 0.4),

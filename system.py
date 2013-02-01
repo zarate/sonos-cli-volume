@@ -52,8 +52,17 @@ class system:
 
 		# THANK YOU ATIKAT, STACKOVERFLOW AND GOOGLE:
 		# http://stackoverflow.com/questions/7342322/bind-to-mdns-multicast-address-on-mac-os-x
+
+		# Also, SO_REUSEPORT, seems to be OSX only, so need to be try/catch'ed for when
+		# we run in other platforms
+		try:
+			osx_port_type = socket.SO_REUSEPORT
+
+		except:
+			osx_port_type = False
+
 		return {
-			"Darwin": socket.SO_REUSEPORT
+			"Darwin": osx_port_type
 		}.get(platform.system(), socket.SO_REUSEADDR)
 
 	save_file = Callable.Callable(save_file)
