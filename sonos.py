@@ -46,15 +46,19 @@ class volume:
 
 class device:
 
+	udn = False
 	name = False
 	base_url = False
+	description_url = False
 	control_url = False
 	min_vol = False
 	max_vol = False
 
-	def __init__(self, name, base_url, control_url, min_vol, max_vol):
+	def __init__(self, udn, name, base_url, description_url, control_url, min_vol, max_vol):
+		self.udn = udn
 		self.name = name
 		self.base_url = base_url
+		self.description_url = description_url
 		self.control_url = control_url
 		self.min_vol = min_vol
 		self.max_vol = max_vol
@@ -97,8 +101,10 @@ class device:
 
 		xml_string = "<?xml version=\"1.0\" ?>"\
 						"<device>"\
+						"<udn><![CDATA[" + new_device.udn + "]]></udn>"\
 						"<name><![CDATA[" + new_device.name + "]]></name>"\
 						"<baseUrl><![CDATA[" + new_device.base_url + "]]></baseUrl>"\
+						"<descriptionUrl><![CDATA[" + new_device.description_url + "]]></descriptionUrl>"\
 						"<controlUrl><![CDATA[" + new_device.control_url + "]]></controlUrl>"\
 						"<minVol><![CDATA[" + str(new_device.min_vol) + "]]></minVol>"\
 						"<maxVol><![CDATA[" + str(new_device.max_vol) + "]]></maxVol>"\
@@ -107,13 +113,15 @@ class device:
 
 	def from_xml(xml):
 
+		udn = xml.find("udn").text
 		name = xml.find("name").text
 		base_url = xml.find("baseUrl").text
+		description_url = xml.find("descriptionUrl").text
 		control_url = xml.find("controlUrl").text
 		min_vol = int(xml.find("minVol").text)
 		max_vol = int(xml.find("maxVol").text)
 
-		return device(name, base_url, control_url, min_vol, max_vol)
+		return device(udn, name, base_url, description_url, control_url, min_vol, max_vol)
 
 	to_xml = Callable.Callable(to_xml)
 	from_xml = Callable.Callable(from_xml)
@@ -152,8 +160,10 @@ class listen:
 						# at this point we have a device of the type we are looking for
 
 						url = urlparse(msg.url())
+						udn = root.find(NS + "device/" + NS + "UDN").text
 						name = root.find(NS + "device/" + NS + "roomName").text
 						base_url = url.scheme + "://" + url.netloc
+						description_url = msg.url()
 						control_url = base_url + service.find(NS + "controlURL").text
 						service_url = base_url + service.find(NS + "SCPDURL").text
 						service_xml = ET.fromstring(urllib2.urlopen(service_url).read())
@@ -167,7 +177,7 @@ class listen:
 								min_vol = variable.find(NSS + "allowedValueRange/" + NSS + "minimum").text
 								max_vol = variable.find(NSS + "allowedValueRange/" + NSS + "maximum").text
 
-						found_device = device(name, base_url, control_url, min_vol, max_vol)
+						found_device = device(udn, name, base_url, description_url, control_url, min_vol, max_vol)
 						management.add_device(found_device)
 				
 
@@ -258,12 +268,9 @@ class management:
 
 	def add_device(new_device):
 
-		url = urlparse(new_device.base_url)
-
-		file_name = url.netloc.replace(".", "_").replace(":", "_") + ".xml"
-
 		print "Adding device: " + new_device.name
 
+		file_name = "".join([c for c in new_device.udn if c.isalpha() or c.isdigit() or c==' ']).rstrip() + ".xml"
 		system.system.save_file(file_name, device.to_xml(new_device))
 
 	def get_devices():
