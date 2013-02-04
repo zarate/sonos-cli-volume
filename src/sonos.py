@@ -32,6 +32,8 @@ SEARCH_ANSWER = "HTTP/1.1 200 OK"
 NS = "{urn:schemas-upnp-org:device-1-0}"
 NSS = "{urn:schemas-upnp-org:service-1-0}"
 
+VERSION = "0.1"
+
 class volume:
 
 	name = False
@@ -185,12 +187,12 @@ class search:
 
 	def __init__(self, timeout):
 
-		if timeout < 10:
+		if timeout <= 10:
 			takes = ". Takes literally " + str(timeout) + " seconds..."
 		else:
-			takes = "(" + str(timeout) + " seconds)..."
+			takes = " (" + str(timeout) + " seconds)..."
 
-		print "Searching for Sonos / UPnP devices " + takes
+		print "Searching for Sonos / UPnP devices" + takes
 
 		try:
 			sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
@@ -380,6 +382,7 @@ def search_devices(timeout):
 
 def print_help():
 	
+	print "Sonos CLI, v" + VERSION
 	print "The manual:"
 	print ""
 	print "\tUsage: sonos.py DEVICE VOLUME"
